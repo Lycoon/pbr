@@ -13,6 +13,9 @@ import { Transform } from './transform';
 interface GUIProperties {
   albedo: number[];
   intensity: number;
+  lightOffsetX: number;
+  lightOffsetY: number;
+  lightOffsetZ: number;
 }
 
 /**
@@ -51,7 +54,7 @@ class Application {
     this._camera = new Camera();
     this._sphereSpacing = 4;
 
-    const lightPad = 1.5;
+    const lightPad = 2;
     const intensity = 2;
 
     const light1 = new PointLight().setPosition(lightPad, lightPad, 4);
@@ -78,7 +81,10 @@ class Application {
 
     this._guiProperties = {
       albedo: [255, 255, 255],
-      intensity: 2
+      intensity: 2,
+      lightOffsetX: 0,
+      lightOffsetY: 0,
+      lightOffsetZ: 4
     };
 
     this._createGUI();
@@ -152,7 +158,11 @@ class Application {
     );
 
     for (let i = 0; i < this._lights.length; i++) {
-      this._uniforms[`uLights[${i}].intensity`] = props.intensity;
+      this._uniforms[`uLights[${i}].position`] = vec3.fromValues(
+        props.lightOffsetX,
+        props.lightOffsetY,
+        props.lightOffsetZ
+      );
     }
 
     // Sets the viewProjection matrix.
@@ -201,6 +211,9 @@ class Application {
     const gui = new GUI();
     gui.addColor(this._guiProperties, 'albedo');
     gui.add(this._guiProperties, 'intensity');
+    gui.add(this._guiProperties, 'lightOffsetX', -8, 8);
+    gui.add(this._guiProperties, 'lightOffsetY', -8, 8);
+    gui.add(this._guiProperties, 'lightOffsetZ', 2, 20);
     return gui;
   }
 }

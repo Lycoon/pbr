@@ -33,17 +33,16 @@ uniform Model uModel;
 
 struct Camera
 {
-  mat4 projection;
   vec3 position;
 };
 uniform Camera uCamera;
 
 void main()
 {
-  vec4 positionLocal =  vec4(in_position, 1.0);
+  vec4 positionLocal = vec4(in_position, 1.0);
   gl_Position = uModel.localToProjection * uModel.transform * positionLocal;
 
-  vPositionWS = in_position;
+  vPositionWS = vec3(uModel.transform * positionLocal);
   vNormalWS = in_normal;
 }
 `;
