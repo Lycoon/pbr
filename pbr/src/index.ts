@@ -190,7 +190,7 @@ class Application {
           0
         );
 
-        mat4.copy(this._uniforms['uModel.transform'] as mat4, model.combine());
+        this._uniforms['uModel.transform'] = model.combine();
         this._context.draw(this._geometry, this._shader, this._uniforms);
       }
     }
