@@ -9,7 +9,7 @@ struct Material
 {
   vec3 albedo;
   float metallic;
-  float rougness;
+  float roughness;
 };
 uniform Material uMaterial;
 
@@ -34,22 +34,29 @@ vec4 LinearTosRGB( in vec4 value ) {
 void main()
 {
   // Lambertian diffuse
-  // **DO NOT** forget to do all your computation in linear space.
-  vec3 color = vec3(0, 0, 0);
   vec3 albedo = sRGBToLinear(vec4(uMaterial.albedo, 1.0)).rgb;
   vec3 N = normalize(vNormalWS);
+  
+  vec3 color = vec3(0, 0, 0);
   for (int i = 0; i < POINT_LIGHT_COUNT; i++)
   {
-    vec3 lightDir = normalize(uLights[i].position - vPositionWS);
+    // Compute light direction
+    vec3 lightDir = uLights[i].position - vPositionWS;
+    vec3 lightDirNorm = normalize(lightDir);
+
+    // Inverse square falloff
     float dst = length(lightDir);
     float inverse = 1.0 / (dst * dst);
-    float diffuse = max(dot(N, lightDir), 0.0);
+
+    // Diffuse
+    float diffuse = max(dot(N, lightDirNorm), 0.0);
     color.rgb += albedo * uLights[i].color * uLights[i].intensity * diffuse * inverse;
   }
 
   // Gamma correction
   color = pow(color / (color + vec3(1.0)), vec3(1.0 / 2.2));
   
+  // Linear to sRGB
   outFragColor.rgba = LinearTosRGB(vec4(color, 1.0));
 }
 `;

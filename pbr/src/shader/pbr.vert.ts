@@ -27,24 +27,21 @@ struct Model
 {
   mat4 localToProjection;
   mat4 transform;
+  mat4 view;
 };
 uniform Model uModel;
 
 struct Camera
 {
   mat4 projection;
-  mat4 view;
   vec3 position;
 };
 uniform Camera uCamera;
 
 void main()
 {
-  vec3 worldPos = vec3(uModel.transform * vec4(in_position, 1.0));
-  mat4 projection = uCamera.projection;
-  mat4 view = uCamera.view;
-
-  gl_Position = projection * view * vec4(worldPos, 1.0);
+  vec4 positionLocal =  vec4(in_position, 1.0);
+  gl_Position = uModel.localToProjection * uModel.transform * positionLocal;
 
   vPositionWS = in_position;
   vNormalWS = in_normal;

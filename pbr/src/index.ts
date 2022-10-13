@@ -12,6 +12,7 @@ import { Transform } from './transform';
 
 interface GUIProperties {
   albedo: number[];
+  intensity: number;
 }
 
 /**
@@ -48,22 +49,22 @@ class Application {
   constructor(canvas: HTMLCanvasElement) {
     this._context = new GLContext(canvas);
     this._camera = new Camera();
-    this._sphereSpacing = 2.0;
+    this._sphereSpacing = 4;
 
     const lightPad = 1.5;
     const intensity = 2;
 
-    const light1 = new PointLight().setPosition(lightPad, lightPad, 1);
-    const light2 = new PointLight().setPosition(lightPad, -lightPad, 1);
-    const light3 = new PointLight().setPosition(-lightPad, lightPad, 1);
-    const light4 = new PointLight().setPosition(-lightPad, -lightPad, 1);
+    const light1 = new PointLight().setPosition(lightPad, lightPad, 4);
+    const light2 = new PointLight().setPosition(lightPad, -lightPad, 4);
+    const light3 = new PointLight().setPosition(-lightPad, lightPad, 4);
+    const light4 = new PointLight().setPosition(-lightPad, -lightPad, 4);
     this._lights = [light1, light2, light3, light4];
 
     for (const light of this._lights) {
       light.setIntensity(intensity);
     }
 
-    this._sphereRadius = 0.5;
+    this._sphereRadius = 1.5;
     this._geometry = new SphereGeometry(this._sphereRadius, 50, 50);
     this._uniforms = {
       'uMaterial.albedo': vec3.create(),
@@ -76,7 +77,8 @@ class Application {
     this._textureExample = null;
 
     this._guiProperties = {
-      albedo: [255, 255, 255]
+      albedo: [255, 255, 255],
+      intensity: 2
     };
 
     this._createGUI();
@@ -135,12 +137,9 @@ class Application {
       this._context.gl.drawingBufferHeight;
 
     const camera = this._camera;
-    vec3.set(camera.transform.position, 0.0, 0.0, 17.0);
+    vec3.set(camera.transform.position, 0.0, 0.0, 28.0);
     camera.setParameters(aspect);
     camera.update();
-
-    //this._uniforms['uCamera.position'] = camera.transform.position;
-    //this._uniforms['uCamera.rotation'] = camera.transform.rotation;
 
     const props = this._guiProperties;
 
@@ -152,17 +151,21 @@ class Application {
       props.albedo[2] / 255
     );
 
+    for (let i = 0; i < this._lights.length; i++) {
+      this._uniforms[`uLights[${i}].intensity`] = props.intensity;
+    }
+
     // Sets the viewProjection matrix.
     // **Note**: if you want to modify the position of the geometry, you will
     // need to take the matrix of the mesh into account here.
-    this._uniforms['uCamera.projection'] = camera.projection;
-    this._uniforms['uCamera.view'] = camera.worldToLocal;
+    this._uniforms['uModel.localToProjection'] = camera.localToProjection;
+
+    // Camera uniforms
     this._uniforms['uCamera.position'] = camera.transform.position;
-    console.log(camera);
+    this._uniforms['uCamera.rotation'] = camera.transform.rotation;
+    this._uniforms['uCamera.projection'] = camera.projection;
 
-    // Draws the triangle.
-    //this._context.draw(this._geometry, this._shader, this._uniforms);
-
+    // Spheres rendering
     let model = new Transform();
     for (let y = 0; y < 5; ++y) {
       this._uniforms['uModel.metallic'] = y / 5;
@@ -172,13 +175,12 @@ class Application {
         this._uniforms['uModel.roughness'] = clamped;
 
         model.position = vec3.fromValues(
-          (x - 5 / 2) * this._sphereSpacing,
-          (y - 5 / 2) * this._sphereSpacing,
+          (x - 5 / 2) * this._sphereSpacing + 2,
+          (y - 5 / 2) * this._sphereSpacing + 2,
           0
         );
-        model.combine();
 
-        mat4.copy(this._uniforms['uModel.transform'] as mat4, model.matrix);
+        mat4.copy(this._uniforms['uModel.transform'] as mat4, model.combine());
         this._context.draw(this._geometry, this._shader, this._uniforms);
       }
     }
@@ -198,6 +200,7 @@ class Application {
   private _createGUI(): GUI {
     const gui = new GUI();
     gui.addColor(this._guiProperties, 'albedo');
+    gui.add(this._guiProperties, 'intensity');
     return gui;
   }
 }
