@@ -158,6 +158,7 @@ class Application {
     this._uniforms['uCamera.projection'] = camera.projection;
     this._uniforms['uCamera.view'] = camera.worldToLocal;
     this._uniforms['uCamera.position'] = camera.transform.position;
+    console.log(camera);
 
     // Draws the triangle.
     //this._context.draw(this._geometry, this._shader, this._uniforms);
