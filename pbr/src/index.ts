@@ -8,6 +8,7 @@ import { PBRShader } from './shader/pbr-shader';
 import { Texture, Texture2D } from './textures/texture';
 import { UniformType } from './types';
 import { PointLight } from './lights/lights';
+import { Transform } from './transform';
 
 interface GUIProperties {
   albedo: number[];
@@ -35,6 +36,7 @@ class Application {
 
   private _camera: Camera;
   private _sphereRadius: number;
+  private _sphereSpacing: number;
 
   /**
    * Object updated with the properties from the GUI
@@ -46,14 +48,15 @@ class Application {
   constructor(canvas: HTMLCanvasElement) {
     this._context = new GLContext(canvas);
     this._camera = new Camera();
+    this._sphereSpacing = 2.0;
 
-    const lightPad = 1;
-    const intensity = 0.7;
+    const lightPad = 1.5;
+    const intensity = 2;
 
-    const light1 = new PointLight().setPosition(lightPad, lightPad, 3);
-    const light2 = new PointLight().setPosition(lightPad, -lightPad, 3);
-    const light3 = new PointLight().setPosition(-lightPad, lightPad, 3);
-    const light4 = new PointLight().setPosition(-lightPad, -lightPad, 3);
+    const light1 = new PointLight().setPosition(lightPad, lightPad, 1);
+    const light2 = new PointLight().setPosition(lightPad, -lightPad, 1);
+    const light3 = new PointLight().setPosition(-lightPad, lightPad, 1);
+    const light4 = new PointLight().setPosition(-lightPad, -lightPad, 1);
     this._lights = [light1, light2, light3, light4];
 
     for (const light of this._lights) {
@@ -132,12 +135,12 @@ class Application {
       this._context.gl.drawingBufferHeight;
 
     const camera = this._camera;
-    vec3.set(camera.transform.position, 0.0, 0.0, 15.0);
+    vec3.set(camera.transform.position, 0.0, 0.0, 17.0);
     camera.setParameters(aspect);
     camera.update();
 
-    this._uniforms['uCamera.position'] = camera.transform.position;
-    this._uniforms['uCamera.rotation'] = camera.transform.rotation;
+    //this._uniforms['uCamera.position'] = camera.transform.position;
+    //this._uniforms['uCamera.rotation'] = camera.transform.rotation;
 
     const props = this._guiProperties;
 
@@ -148,38 +151,36 @@ class Application {
       props.albedo[1] / 255,
       props.albedo[2] / 255
     );
+
     // Sets the viewProjection matrix.
     // **Note**: if you want to modify the position of the geometry, you will
     // need to take the matrix of the mesh into account here.
-    mat4.copy(
-      this._uniforms['uModel.localToProjection'] as mat4,
-      camera.localToProjection
-    );
+    this._uniforms['uCamera.projection'] = camera.projection;
+    this._uniforms['uCamera.view'] = camera.worldToLocal;
+    this._uniforms['uCamera.position'] = camera.transform.position;
 
     // Draws the triangle.
     //this._context.draw(this._geometry, this._shader, this._uniforms);
 
-    for (let i = 0; i < 10; i++) {
-      camera.transform.position[0] = Math.sin(i * 0.1) * 5;
-      camera.update();
-      this._context.draw(this._geometry, this._shader, this._uniforms);
-    }
+    let model = new Transform();
+    for (let y = 0; y < 5; ++y) {
+      this._uniforms['uModel.metallic'] = y / 5;
 
-    // Draws the spheres
-    /*
-    for (let col = 0; col < 5; col++) {
-      for (let row = 0; row < 5; row++) {
-        this._uniforms['uSphere.position'] = vec3.fromValues(
-          row * (this._sphereRadius * 10),
-          col * (this._sphereRadius * 10),
+      for (let x = 0; x < 5; ++x) {
+        let clamped = x / 5 < 0.05 ? 0.05 : x / 5;
+        this._uniforms['uModel.roughness'] = clamped;
+
+        model.position = vec3.fromValues(
+          (x - 5 / 2) * this._sphereSpacing,
+          (y - 5 / 2) * this._sphereSpacing,
           0
         );
-        //console.log(this._uniforms['uSphere.position']);
+        model.combine();
 
+        mat4.copy(this._uniforms['uModel.transform'] as mat4, model.matrix);
         this._context.draw(this._geometry, this._shader, this._uniforms);
       }
     }
-    */
   }
 
   /**

@@ -8,6 +8,8 @@ in vec3 vPositionWS;
 struct Material
 {
   vec3 albedo;
+  float metallic;
+  float rougness;
 };
 uniform Material uMaterial;
 
@@ -35,11 +37,14 @@ void main()
   // **DO NOT** forget to do all your computation in linear space.
   vec3 color = vec3(0, 0, 0);
   vec3 albedo = sRGBToLinear(vec4(uMaterial.albedo, 1.0)).rgb;
+  vec3 N = normalize(vNormalWS);
   for (int i = 0; i < POINT_LIGHT_COUNT; i++)
   {
     vec3 lightDir = normalize(uLights[i].position - vPositionWS);
-    float diffuse = max(dot(vNormalWS, lightDir), 0.0);
-    color.rgb += albedo * uLights[i].color * uLights[i].intensity * diffuse;
+    float dst = length(lightDir);
+    float inverse = 1.0 / (dst * dst);
+    float diffuse = max(dot(N, lightDir), 0.0);
+    color.rgb += albedo * uLights[i].color * uLights[i].intensity * diffuse * inverse;
   }
 
   // Gamma correction

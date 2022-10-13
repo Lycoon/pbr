@@ -26,27 +26,25 @@ out vec3 vNormalWS;
 struct Model
 {
   mat4 localToProjection;
+  mat4 transform;
 };
 uniform Model uModel;
 
 struct Camera
 {
+  mat4 projection;
+  mat4 view;
   vec3 position;
-  vec4 rotation;
 };
 uniform Camera uCamera;
 
-struct Sphere
-{
-  vec3 position;
-  float radius;
-};
-uniform Sphere uSphere;
-
 void main()
 {
-  vec4 positionLocal = vec4(in_position, 1.0);
-  gl_Position = uModel.localToProjection * vec4(uSphere.position, 1.0);
+  vec3 worldPos = vec3(uModel.transform * vec4(in_position, 1.0));
+  mat4 projection = uCamera.projection;
+  mat4 view = uCamera.view;
+
+  gl_Position = projection * view * vec4(worldPos, 1.0);
 
   vPositionWS = in_position;
   vNormalWS = in_normal;
