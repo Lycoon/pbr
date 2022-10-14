@@ -54,18 +54,12 @@ class Application {
     this._camera = new Camera();
     this._sphereSpacing = 4;
 
-    const lightPad = 2;
-    const intensity = 2;
-
-    const light1 = new PointLight().setPosition(lightPad, lightPad, 4);
-    const light2 = new PointLight().setPosition(lightPad, -lightPad, 4);
-    const light3 = new PointLight().setPosition(-lightPad, lightPad, 4);
-    const light4 = new PointLight().setPosition(-lightPad, -lightPad, 4);
+    const lightPad = 10;
+    const light1 = new PointLight().setPosition(lightPad, lightPad, 10);
+    const light2 = new PointLight().setPosition(lightPad, -lightPad, 10);
+    const light3 = new PointLight().setPosition(-lightPad, lightPad, 10);
+    const light4 = new PointLight().setPosition(-lightPad, -lightPad, 10);
     this._lights = [light1, light2, light3, light4];
-
-    for (const light of this._lights) {
-      light.setIntensity(intensity);
-    }
 
     this._sphereRadius = 1.5;
     this._geometry = new SphereGeometry(this._sphereRadius, 50, 50);
@@ -81,10 +75,10 @@ class Application {
 
     this._guiProperties = {
       albedo: [255, 255, 255],
-      intensity: 2,
+      intensity: 20,
       lightOffsetX: 0,
       lightOffsetY: 0,
-      lightOffsetZ: 4
+      lightOffsetZ: 20
     };
 
     this._createGUI();
@@ -158,11 +152,12 @@ class Application {
     );
 
     for (let i = 0; i < this._lights.length; i++) {
-      this._uniforms[`uLights[${i}].position`] = vec3.fromValues(
+      this._uniforms[`uLights[${i}].intensity`] = props.intensity;
+      /*this._uniforms[`uLights[${i}].position`] = vec3.fromValues(
         props.lightOffsetX,
         props.lightOffsetY,
         props.lightOffsetZ
-      );
+      );*/
     }
 
     // Sets the viewProjection matrix.
@@ -178,11 +173,10 @@ class Application {
     // Spheres rendering
     let model = new Transform();
     for (let y = 0; y < 5; ++y) {
-      this._uniforms['uModel.metallic'] = y / 5;
+      this._uniforms['uMaterial.metallic'] = y / 5;
 
       for (let x = 0; x < 5; ++x) {
         let clamped = x / 5 < 0.05 ? 0.05 : x / 5;
-        this._uniforms['uModel.roughness'] = clamped;
 
         model.position = vec3.fromValues(
           (x - 5 / 2) * this._sphereSpacing + 2,
@@ -190,6 +184,7 @@ class Application {
           0
         );
 
+        this._uniforms['uMaterial.roughness'] = clamped;
         this._uniforms['uModel.transform'] = model.combine();
         this._context.draw(this._geometry, this._shader, this._uniforms);
       }
@@ -210,7 +205,7 @@ class Application {
   private _createGUI(): GUI {
     const gui = new GUI();
     gui.addColor(this._guiProperties, 'albedo');
-    gui.add(this._guiProperties, 'intensity');
+    gui.add(this._guiProperties, 'intensity', 0, 20);
     gui.add(this._guiProperties, 'lightOffsetX', -8, 8);
     gui.add(this._guiProperties, 'lightOffsetY', -8, 8);
     gui.add(this._guiProperties, 'lightOffsetZ', 2, 20);

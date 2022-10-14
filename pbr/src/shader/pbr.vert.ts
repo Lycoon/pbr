@@ -43,6 +43,6 @@ void main()
   gl_Position = uModel.localToProjection * uModel.transform * positionLocal;
 
   vPositionWS = vec3(uModel.transform * positionLocal);
-  vNormalWS = in_normal;
+  vNormalWS = mat3(uModel.transform) * in_normal;
 }
 `;
