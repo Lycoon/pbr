@@ -91,11 +91,14 @@ void main()
   vec3 albedo = sRGBToLinear(vec4(uMaterial.albedo, 1.0)).rgb;
   vec3 V = normalize(uCamera.position - vPositionWS);
   vec3 N = normalize(vNormalWS);
+  
+  float roughness = uMaterial.roughness;
+  float metallic = uMaterial.metallic;
 
   vec3 f0 = vec3(0.04);
-  f0 = mix(f0, albedo, uMaterial.metallic);
+  f0 = mix(f0, albedo, metallic);
   
-  vec3 color = vec3(0, 0, 0);
+  vec3 color = vec3(0.0, 0.0, 0.0);
   for (int i = 0; i < POINT_LIGHT_COUNT; i++)
   {
     // Compute light direction
@@ -104,25 +107,27 @@ void main()
 
     // Inverse square falloff
     float dst = length(lightDir);
-    float inverse = 1.0 / (dst * dst);
+    float inverse = 1.0 / (4.0 * M_PI * dst * dst);
     vec3 radiance = uLights[i].color * uLights[i].intensity * inverse;
 
     // Cook-Torrance BRDF
     vec3 H = normalize(V + lightDirNorm);
-    float NDF = distributionGGX(N, H, uMaterial.roughness);   
-    float G = geometrySmith(N, V, lightDirNorm, uMaterial.roughness);      
+    float NDF = distributionGGX(N, H, roughness);
+    float G = geometrySmith(N, V, lightDirNorm, roughness);
     vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), f0);
+
     vec3 nom = NDF * G * F; 
-    float denom = 4.0 * max(dot(N, V), 0.0) * max(dot(N, lightDirNorm), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+    float denom = 4.0 * max(dot(N, V), 0.0) * max(dot(N, lightDirNorm), 0.0) + 0.0001;
     vec3 specular = nom / denom;
 
     // Calculate final color
     vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - uMaterial.metallic;
+    kD *= 1.0 - metallic;
+    vec3 diffuse = kD * albedo / M_PI;
 
     float NdotL = max(dot(N, lightDirNorm), 0.0);
-    color.rgb += (kD * albedo / M_PI + specular) * radiance * NdotL;
+    color.rgb += (diffuse + specular) * radiance * NdotL;
   }
 
   // Ambient lighting
