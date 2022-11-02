@@ -1,9 +1,9 @@
 import { Shader } from './shader';
 
-import vertex from './pbr.vert';
-import fragment from './pbr.frag';
+import vertex from './ibl.vert';
+import fragment from './ibl.frag';
 
-export class PBRShader extends Shader {
+export class IBLShader extends Shader {
   public constructor() {
     super(vertex, fragment);
   }

@@ -1,10 +1,13 @@
 export default `
 precision highp float;
 
-#define M_PI 3.1415926535897932384626433832795
+const float M_PI = 3.1415926535897932384626433832795;
 
+// Inputs
 in vec3 vNormalWS;
 in vec3 vPositionWS;
+
+// Outputs
 out vec4 outFragColor;
 
 
@@ -37,21 +40,19 @@ uniform Camera uCamera;
 // --------------------
 float distributionGGX(vec3 N, vec3 H, float roughness)
 {
-    float a = roughness*roughness;
-    float a2 = a*a;
+    float a = roughness * roughness;
     float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH*NdotH;
+    float NdotH2 = NdotH * NdotH;
 
-    float nom = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    float denom = NdotH2 * (a*a - 1.0) + 1.0;
     denom = M_PI * denom * denom;
 
-    return nom / denom;
+    return (a*a) / denom;
 }
 
 float geometrySchlickGGX(float NdotV, float roughness)
 {
-    float r = (roughness + 1.0);
+    float r = roughness + 1.0;
     float k = (r*r) / 8.0;
 
     float nom = NdotV;
@@ -116,7 +117,7 @@ void main()
     float G = geometrySmith(N, V, lightDirNorm, roughness);
     vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), f0);
 
-    vec3 nom = NDF * G * F; 
+    vec3 nom = NDF * G * F;
     float denom = 4.0 * max(dot(N, V), 0.0) * max(dot(N, lightDirNorm), 0.0) + 0.0001;
     vec3 specular = nom / denom;
 

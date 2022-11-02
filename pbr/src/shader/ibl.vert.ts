@@ -2,17 +2,14 @@ export default `
 
 precision highp float;
 
-//in mat4 in_transform;
+// Inputs
 in vec3 in_position;
 in vec3 in_normal;
 #ifdef USE_UV
   in vec2 in_uv;
 #endif // USE_UV
 
-/**
- * Varyings.
- */
-
+// Ouputs
 out vec3 vPositionWS;
 out vec3 vNormalWS;
 #ifdef USE_UV

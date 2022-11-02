@@ -4,18 +4,17 @@ import { Camera } from './camera';
 import { TriangleGeometry } from './geometries/triangle';
 import { SphereGeometry } from './geometries/sphere';
 import { GLContext } from './gl';
-import { PBRShader } from './shader/pbr-shader';
+import { PonctualLightsShader } from './shader/ponctual-lights-shader';
 import { Texture, Texture2D } from './textures/texture';
 import { UniformType } from './types';
 import { PointLight } from './lights/lights';
 import { Transform } from './transform';
+import { IBLShader } from './shader/ibl-shader';
 
 interface GUIProperties {
   albedo: number[];
   intensity: number;
-  lightOffsetX: number;
-  lightOffsetY: number;
-  lightOffsetZ: number;
+  ponctualLights: boolean;
 }
 
 /**
@@ -31,11 +30,16 @@ class Application {
    */
   private _context: GLContext;
 
-  private _shader: PBRShader;
+  private _IBLShader: IBLShader;
+  private _ponctualLightsShader: PonctualLightsShader;
+
   private _geometry: TriangleGeometry;
   private _uniforms: Record<string, UniformType | Texture>;
 
-  private _textureExample: Texture2D<HTMLElement> | null;
+  //private _textureExample: Texture2D<HTMLElement> | null;
+  private _preComputedIBL: Texture2D<HTMLElement> | null;
+  private _diffuseIBL: Texture2D<HTMLElement> | null;
+  private _specularIBL: Texture2D<HTMLElement> | null;
   private _lights: [PointLight, PointLight, PointLight, PointLight];
 
   private _camera: Camera;
@@ -60,7 +64,7 @@ class Application {
     const light4 = new PointLight().setPosition(-lightPad, -lightPad, 4);
     this._lights = [light1, light2, light3, light4];
 
-    this._sphereSpacing = 1.5;
+    this._sphereSpacing = 1.3;
     this._sphereRadius = 0.5;
     this._geometry = new SphereGeometry(this._sphereRadius, 50, 50);
     this._uniforms = {
@@ -69,16 +73,24 @@ class Application {
       'uModel.transform': mat4.create()
     };
 
-    this._shader = new PBRShader();
-    this._shader.pointLightCount = 4;
-    this._textureExample = null;
+    /* Shaders */
+    this._IBLShader = new IBLShader();
+    this._IBLShader.pointLightCount = 4;
 
+    this._ponctualLightsShader = new PonctualLightsShader();
+    this._ponctualLightsShader.pointLightCount = 4;
+
+    /* Textures */
+    //this._textureExample = null;
+    this._diffuseIBL = null;
+    this._specularIBL = null;
+    this._preComputedIBL = null;
+
+    /* GUI */
     this._guiProperties = {
       albedo: [255, 255, 255],
       intensity: 300,
-      lightOffsetX: 0,
-      lightOffsetY: 0,
-      lightOffsetZ: 4
+      ponctualLights: true
     };
 
     this._createGUI();
@@ -89,17 +101,40 @@ class Application {
    */
   async init() {
     this._context.uploadGeometry(this._geometry);
-    this._context.compileProgram(this._shader);
+    this._context.compileProgram(this._ponctualLightsShader);
+    this._context.compileProgram(this._IBLShader);
 
     // Example showing how to load a texture and upload it to GPU.
-    this._textureExample = await Texture2D.load(
+    /*this._textureExample = await Texture2D.load(
+      'assets/ggx-brdf-integrated.png'
+    );*/
+    this._preComputedIBL = await Texture2D.load(
       'assets/ggx-brdf-integrated.png'
     );
-    if (this._textureExample !== null) {
-      this._context.uploadTexture(this._textureExample);
-      // You can then use it directly as a uniform:
-      // ```uniforms.myTexture = this._textureExample;```
+    this._diffuseIBL = await Texture2D.load(
+      'assets/env/Alexs_Apt_2k-diffuse-RGBM.png'
+    );
+    this._specularIBL = await Texture2D.load(
+      'assets/env/Alexs_Apt_2k-specular-RGBM.png'
+    );
+
+    if (this._preComputedIBL !== null) {
+      this._context.uploadTexture(this._preComputedIBL);
+      this._uniforms.uPreComputedIBL = this._preComputedIBL;
     }
+
+    if (this._diffuseIBL !== null) {
+      this._context.uploadTexture(this._diffuseIBL);
+      this._uniforms.uDiffuseIBL = this._diffuseIBL;
+    }
+
+    if (this._specularIBL !== null) {
+      this._context.uploadTexture(this._specularIBL);
+      this._uniforms.uSpecularIBL = this._specularIBL;
+    }
+
+    // You can then use it directly as a uniform:
+    // ```uniforms.myTexture = this._textureExample;```
 
     // Lights
     for (let i = 0; i < this._lights.length; i++) {
@@ -181,12 +216,16 @@ class Application {
         this._uniforms['uMaterial.roughness'] = clamped;
         model.position = vec3.fromValues(
           (x - 5 / 2) * this._sphereSpacing + 1,
-          (y - 5 / 2) * this._sphereSpacing + 1,
+          (y - 5 / 2) * this._sphereSpacing + 0.8,
           0
         );
 
         this._uniforms['uModel.transform'] = model.combine();
-        this._context.draw(this._geometry, this._shader, this._uniforms);
+        this._context.draw(
+          this._geometry,
+          props.ponctualLights ? this._ponctualLightsShader : this._IBLShader,
+          this._uniforms
+        );
       }
     }
   }
@@ -206,9 +245,7 @@ class Application {
     const gui = new GUI();
     gui.addColor(this._guiProperties, 'albedo');
     gui.add(this._guiProperties, 'intensity', 0, 400);
-    gui.add(this._guiProperties, 'lightOffsetX', -8, 8);
-    gui.add(this._guiProperties, 'lightOffsetY', -8, 8);
-    gui.add(this._guiProperties, 'lightOffsetZ', 2, 20);
+    gui.add(this._guiProperties, 'ponctualLights');
     return gui;
   }
 }
